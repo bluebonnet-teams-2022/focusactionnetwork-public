@@ -1,0 +1,315 @@
+---
+title: "AZ map"
+author: "Yvonne Lian"
+date: '2022-07-06'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE,
+  echo = TRUE
+)
+library(tidyverse)
+library(leaflet)
+library(tidycensus)
+library(viridis)
+library(sf)
+library(dplyr)
+library(knitr)
+library(shinythemes)
+library(shiny)
+library(htmltools)
+library(htmlwidgets)
+library(rsconnect)
+library(rgeos)
+```
+
+
+```{r setup, include=FALSE}
+#Import AZ 2022 county shape file
+AZ_county_2022 <- st_read("data/AZ_data/County/County.shp") %>%
+  st_as_sf(coords = c("longitude", "latitude", crs = 4326)) %>%
+  st_transform(4326)
+
+#Import AZ 2022 SD shape file
+AZ_SD_2022 <- st_read("data/AZ_data/School_District_2020/School_District_Boundaries_-_Arizona_(2020).shp") %>%
+  st_as_sf(coords = c("longitude", "latitude", crs = 4326)) %>%
+  st_transform(4326)
+
+#Import AZ 2022 Congressional district shape file
+AZ_congressional_2022 <- st_read("data/AZ_data/Congressional_Map_2022/Approved_Official_Congressional_Map.shp") %>%
+  st_as_sf(coords = c("longitude", "latitude", crs = 4326)) %>%
+  st_transform(4326)
+
+# Import AZ 2022 Legislative district shape file
+AZ_legislative_2022 <- st_read("data/AZ_data/Legislative_Map_2022/Approved_Official_Legislative_Map.shp") %>%
+  st_as_sf(coords = c("longitude", "latitude", crs = 4326)) %>%
+  st_transform (4326)
+
+#Import AZ 2012 Congressional district shape file
+AZ_congressional_2012 <- st_read("data/AZ_data/2012_Congressional_Districts/Final_Congressional_Districts-shp.shp") %>%
+  st_as_sf(coords = c("longitude", "latitude", crs = 4326)) %>%
+  st_transform(4326)
+
+# Import AZ 2012 Legislative district shape file
+AZ_legislative_2012 <- st_read("data/AZ_data/2012_Legislative_Districts/Final_Legislative_Districts-shp.shp") %>%
+  st_as_sf(coords = c("longitude", "latitude", crs = 4326)) %>%
+  st_transform (4326)
+
+```
+
+
+```{r}
+#Add static label 
+
+#AZ congressional 2012
+AZ_congressional_2012_centroid <- as.data.frame(gCentroid(as(AZ_congressional_2012, "Spatial"), byid = TRUE, id = AZ_congressional_2012$DISTRICT))
+
+AZ_congressional_2012_centroid$ID <- 1:nrow(AZ_congressional_2012_centroid)
+
+#AZ legislative 2012
+AZ_legislative_2012_centroid <- as.data.frame(gCentroid(as(AZ_legislative_2012, "Spatial"), byid = TRUE, id = AZ_legislative_2012$DISTRICT))
+
+AZ_legislative_2012_centroid$ID <- 1:nrow(AZ_legislative_2012_centroid)
+
+#AZ congressional 2022
+AZ_congressional_2022_centroid <- as.data.frame(gCentroid(as(AZ_congressional_2022, "Spatial"), byid = TRUE, id = AZ_congressional_2022$DISTRICT))
+
+AZ_congressional_2022_centroid$ID <- 1:nrow(AZ_congressional_2022_centroid)
+
+#AZ legislative 2022
+AZ_legislative_2022_centroid <- as.data.frame(gCentroid(as(AZ_legislative_2022, "Spatial"), byid = TRUE, id = AZ_legislative_2022$DISTRICT))
+
+AZ_legislative_2022_centroid$ID <- 1:nrow(AZ_legislative_2022_centroid)
+
+```
+
+
+
+```{r}
+AZ_map <- leaflet(options = leafletOptions(zoomControl = TRUE,
+                                 zoomSnap = 0.25,
+                                 zoomDelta = 0.25)) %>%
+	addTiles(group = "OSM") %>%
+	setView(lat = 34.25, lng = -112, zoom = 7) %>%
+	addProviderTiles("CartoDB.Positron", group = "CartoDB.Positron" ) %>%
+  addPolygons(data = AZ_congressional_2012,
+				fillColor = "gold",
+				stroke = TRUE,
+				color = "gold",
+				weight = 1.3,
+				opacity = 0.9,
+				fillOpacity = 0.3,
+				highlight = highlightOptions(
+				  stroke = TRUE,
+				  weight = 2, 
+				  opacity = 0.7,
+				  fill = "palegoldenrod",
+				  color = "gold",
+				  fillColor = "palegoldenrod", 
+				  fillOpacity = 0.7,
+				  bringToFront = FALSE),
+				label = paste0("2012 Congressional District ",
+				               htmlEscape(AZ_congressional_2012$DISTRICT)),
+				group = "Congressional 2012") %>%
+	addPolygons(data = AZ_legislative_2012,
+				fillColor = "sandybrown",
+				stroke = TRUE,
+				color = "sandybrown",
+				weight = 1.2,
+				opacity = 0.8,
+				fillOpacity = 0.2,
+				highlight = highlightOptions(
+				  stroke = TRUE,
+				  weight = 2, 
+				  opacity = 0.7,
+				  fill = "cornsilk",
+				  color = "sandybrown",
+				  fillColor = "cornsilk", 
+				  fillOpacity = 0.7,
+				  bringToFront = FALSE),                
+				label= paste0("2012 Legislative District ", htmlEscape(AZ_legislative_2012$DISTRICT)),
+				group = "Legislative 2012") %>%
+  	addPolygons(data = AZ_congressional_2022,
+				fillColor = "aquamarine",
+				stroke = TRUE,
+				color = "mediumaquamarine",
+				weight = 1.3,
+				opacity = 0.8,
+				fillOpacity = 0.3,
+				highlight = highlightOptions(
+				  stroke = TRUE,
+				  weight = 2, 
+				  opacity = 0.7,
+				  fill = "honeydew",
+				  color = "mediumaquamarine",
+				  fillColor = "honeydew", 
+				  fillOpacity = 0.7,
+				  bringToFront = FALSE),
+				label = paste0("2022 Congressional District ",
+				               htmlEscape(AZ_congressional_2022$DISTRICT)),
+				group = "Congressional 2022") %>%
+	addPolygons(data = AZ_legislative_2022,
+				fillColor = "darkturquoise",
+				stroke = TRUE,
+				color = "darkturquoise",
+				weight = 1.2,
+				opacity = 0.8,
+				fillOpacity = 0.2,
+				highlight = highlightOptions(
+				  stroke = TRUE,
+				  weight = 2, 
+				  opacity = 0.7,
+				  fill = "lightcyan",
+				  color = "darkturquoise",
+				  fillColor = "lightcyan", 
+				  fillOpacity = 0.7,
+				  bringToFront = FALSE),                
+				label= paste0("2022 Legislative District ", htmlEscape(AZ_legislative_2022$DISTRICT)),
+				group = "Legislative 2022") %>%
+  addPolygons(data = AZ_congressional_2022,
+				fillColor = "transparent",
+				stroke = TRUE,
+				color = "gold",
+				weight = 3,
+				opacity = 0.6,
+				highlight = highlightOptions(
+				  stroke = TRUE,
+				  weight = 2, 
+				  opacity = 0.7,
+				  fill = "cornsilk",
+				  color = "gold",
+				  fillColor = "cornsilk", 
+				  fillOpacity = 0.2,
+				  bringToFront = FALSE),
+				label = paste0("2022 Congressional District ",
+				               htmlEscape(AZ_congressional_2022$DISTRICT)),
+				group = "Congressional lines 2022") %>%
+  addPolygons(data = AZ_legislative_2022,
+				fillColor = "transparent",
+				stroke = TRUE,
+				color = "darkorange",
+				weight = 3,
+				opacity = 0.6,
+				highlight = highlightOptions(
+				  stroke = TRUE,
+				  weight = 2, 
+				  opacity = 0.7,
+				  fill = "papayawhip",
+				  color = "darkorange",
+				  fillColor = "papayawhip", 
+				  fillOpacity = 0.2,
+				  bringToFront = FALSE),                
+				label= paste0("2022 Legislative District ", htmlEscape(AZ_legislative_2022$DISTRICT)),
+				group = "Legislative lines 2022") %>%
+  addPolygons(data = AZ_SD_2022,
+				fillColor = "darkcyan",
+				stroke = TRUE,
+				color = "darkcyan",
+				weight = 1.3,
+				opacity = 0.8,
+				fillOpacity = 0.3,
+				highlight = highlightOptions(
+				  stroke = TRUE,
+				  weight = 2, 
+				  opacity = 0.7,
+				  fill = "lightcyan",
+				  color = "darkcyan",
+				  fillColor = "lightcyan", 
+				  fillOpacity = 0.7,
+				  bringToFront = FALSE),
+				label = paste0("2022", htmlEscape(AZ_SD_2022$NAME)),
+				group = "SD district 2022") %>%
+  addPolygons(data = AZ_county_2022,
+				fillColor = "cornflowerblue",
+				stroke = TRUE,
+				color = "cornflowerblue",
+				weight = 1.3,
+				opacity = 0.8,
+				fillOpacity = 0.3,
+				highlight = highlightOptions(
+				  stroke = TRUE,
+				  weight = 2, 
+				  opacity = 0.7,
+				  fill = "lightcyan",
+				  color = "cornflowerblue",
+				  fillColor = "lightcyan", 
+				  fillOpacity = 0.7,
+				  bringToFront = FALSE),
+				label = paste0("County: ", htmlEscape(AZ_county_2022$COUNTY_NAM)),
+				group = "County 2022") %>%
+  addLabelOnlyMarkers(data = AZ_congressional_2012_centroid, ~x, ~y, label = ~as.character(ID),
+						labelOptions = labelOptions(noHide = TRUE,
+													direction = "center",
+													offset = c(0, 0), opacity = 1, 
+													textsize = "15px", textOnly = TRUE, 
+													style = list("font-style" = "bold")),
+							group = "Congressional 2012") %>%
+  addLabelOnlyMarkers(data = AZ_legislative_2012_centroid, ~x, ~y, label = ~as.character(ID),
+						labelOptions = labelOptions(noHide = TRUE,
+													direction = "center",
+													offset = c(0, 0), opacity = 1, 
+													textsize = "15px", textOnly = TRUE, 
+													style = list("font-style" = "bold")),
+							group = "Legislative 2012") %>%
+  addLabelOnlyMarkers(data = AZ_congressional_2022_centroid, ~x, ~y, label = ~as.character(ID),
+						labelOptions = labelOptions(noHide = TRUE,
+													direction = "center",
+													offset = c(0, 0), opacity = 1, 
+													textsize = "15px", textOnly = TRUE, 
+													style = list("font-style" = "bold")),
+							group = "Congressional 2022") %>%
+  addLabelOnlyMarkers(data = AZ_congressional_2022_centroid, ~x, ~y, label = ~as.character(ID),
+						labelOptions = labelOptions(noHide = TRUE,
+													direction = "center",
+													offset = c(0, 0), opacity = 1, 
+													textsize = "20px", textOnly = TRUE, 
+													style = list("font-style" = "bold")),
+							group = "Congressional lines 2022") %>%
+  addLabelOnlyMarkers(data = AZ_legislative_2022_centroid, ~x, ~y, label = ~as.character(ID),
+						labelOptions = labelOptions(noHide = TRUE,
+													direction = "center",
+													offset = c(0, 0), opacity = 1, 
+													textsize = "15px", textOnly = TRUE, 
+													style = list("font-style" = "bold")),
+							group = "Legislative 2022") %>%
+  addLabelOnlyMarkers(data = AZ_legislative_2022_centroid, ~x, ~y, label = ~as.character(ID),
+						labelOptions = labelOptions(noHide = TRUE,
+													direction = "center",
+													offset = c(0, 0), opacity = 0.7, 
+													textsize = "20px", textOnly = TRUE, 
+													style = list("font-style" = "bold")),
+							group = "Legislative lines 2022") %>%
+	 	 addLegend("bottomright", 
+			colors = c("gold","sandybrown", "aquamarine","darkturquoise", "darkcyan", "cornflowerblue", "", "gold", "darkorange"), 
+			labels = c("Congressional 2012","Legislative 2012", "Congressional 2022","Legislative 2022","SD district 2022", "County 2022", "", "Congressional lines 2022", "Legislative lines 2022"),
+			title = "AZ districts",
+			opacity = 1) %>%    
+hideGroup(c("Congressional 2012",
+            "Legislative 2012",
+            "Congressional 2022",
+						"Legislative 2022",
+            "SD district 2022",
+            "County 2022",
+						"Congressional lines 2022",
+						"Legislative lines 2022"
+						)) %>%
+	showGroup(c("County 2022")) %>%
+	addLayersControl(overlayGroups= c(
+	                  "Congressional 2012",
+	                  "Legislative 2012",
+									  "Congressional 2022",
+  									"Legislative 2022",
+									  "SD district 2022",
+									  "County 2022",
+									  "Congressional lines 2022",
+									   "Legislative lines 2022"
+									  ), 
+					 baseGroups = c("CartoDB.Positron")) 
+
+
+AZ_map
+```
+
+

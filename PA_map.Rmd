@@ -1,0 +1,384 @@
+---
+title: "PA map"
+author: "Yvonne Lian"
+date: '2022-07-06'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE,
+  echo = TRUE
+)
+library(tidyverse)
+library(leaflet)
+library(tidycensus)
+library(viridis)
+library(sf)
+library(dplyr)
+library(knitr)
+library(shinythemes)
+library(shiny)
+library(htmltools)
+library(htmlwidgets)
+library(rsconnect)
+library(rgeos)
+```
+
+
+```{r setup, include=FALSE}
+#Import PA 2022 county shape file
+PA_county_2022 <- st_read("data/PA_data/County2022/PaCounty2022_04.shp") %>%
+  st_as_sf(coords = c("longitude", "latitude", crs = 4326)) %>%
+  st_transform(4326)
+
+#Import PA 2022 SD shape file
+PA_SD_2022 <- st_read("data/PA_data/PaSchoolDistricts2022_04/PaSchoolDistricts2022_04.shp") %>%
+  st_as_sf(coords = c("longitude", "latitude", crs = 4326)) %>%
+  st_transform(4326)
+
+# Import PA 2022 Senate district shape file
+PA_senate_2022 <- st_read("data/PA_data/2022 LRC-Senate-Final (1)/2022 LRC-Senate-Final.shp") %>%
+  st_as_sf(coords = c("longitude", "latitude", crs = 4326)) %>%
+  st_transform (4326)
+
+#Import PA 2022 House district shape file
+PA_house_2022 <- st_read("data/PA_data/2022 LRC-House-Final (1)/2022 LRC-House-Final.shp") %>%
+  st_as_sf(coords = c("longitude", "latitude", crs = 4326)) %>%
+  st_transform(4326)
+
+#Import PA 2022 Congressional district shape file
+
+PA_congressional_2022 <- st_read("data/PA_data/PaCongressional2022_04/PaCongressional2022_04.shp") %>%
+  st_as_sf(coords = c("longitude", "latitude", crs = 4326)) %>%
+  st_transform(4326)
+
+#Import PA 2022 Municipals(townships) district shape file
+
+PA_municipalities_2022 <- st_read("data/PA_data/Pennsylvania_Municipality_Boundaries/geo_export_683554fb-f125-4967-bb5f-d1c8464f757d.shp") %>%
+  st_as_sf(coords = c("longitude", "latitude", crs = 4326)) %>%
+  st_transform(4326)
+
+
+# Import PA 2012 Senate district shape file
+PA_senate_2012 <- st_read("data/PA_data/Senate2012/FinalSenatePlan2012.shp") %>%
+  st_as_sf(coords = c("longitude", "latitude", crs = 4326)) %>%
+  st_transform (4326)
+
+#Import PA 2012 House district shape file
+PA_house_2012 <- st_read("data/PA_data/House2012/House2012Final.shp") %>%
+  st_as_sf(coords = c("longitude", "latitude", crs = 4326)) %>%
+  st_transform(4326)
+
+
+```
+
+
+```{r}
+#Clean data + static labels
+
+#PA 2022 Senate district
+PA_senate_2022 <- PA_senate_2022 %>%
+  select(DISTRICT, geometry) %>%
+  arrange(as.numeric(DISTRICT))
+
+PA_senate_2022_centroid <- as.data.frame(gCentroid(as(PA_senate_2022, "Spatial"), byid = TRUE, id = PA_senate_2022$DISTRICT))
+
+PA_senate_2022_centroid$ID <- 1:nrow(PA_senate_2022_centroid)
+
+
+#PA 2022 House district
+
+PA_house_2022 <- PA_house_2022 %>%
+  select(DISTRICT, geometry) %>%
+  arrange(as.numeric(DISTRICT))
+
+PA_house_2022_centroid <- as.data.frame(gCentroid(as(PA_house_2022, "Spatial"), byid = TRUE, id = PA_house_2022$DISTRICT))
+
+PA_house_2022_centroid$ID <- 1:nrow(PA_house_2022_centroid)
+
+#PA 2022 Congressional
+PA_congressional_2022 <- PA_congressional_2022 %>%
+  arrange(LEG_DISTRI)
+
+PA_congressional_2022_centroid <- as.data.frame(gCentroid(as(PA_congressional_2022, "Spatial"), byid = TRUE, id = PA_congressional_2022$LEG_DISTRI))
+
+PA_congressional_2022_centroid$ID <- 1:nrow(PA_congressional_2022_centroid)
+
+#PA 2012 Senate district
+PA_senate_2012_centroid <- as.data.frame(gCentroid(as(PA_senate_2012, "Spatial"), byid = TRUE, id = PA_senate_2012$District_1))
+
+PA_senate_2012_centroid$ID <- 1:nrow(PA_senate_2012_centroid)
+
+#PA 2012 House district
+PA_house_2012_centroid <- as.data.frame(gCentroid(as(PA_house_2012, "Spatial"), byid = TRUE, id = PA_house_2012$District_N))
+
+PA_house_2012_centroid$ID <- 1:nrow(PA_house_2012_centroid)
+
+```
+
+
+```{r}
+PA_map <- leaflet(options = leafletOptions(zoomControl = TRUE,
+                                 zoomSnap = 0.25,
+                                 zoomDelta = 0.25)) %>%
+	addTiles(group = "OSM") %>%
+	setView(lat = 41, lng = -77.5, zoom = 7.75) %>%
+	addProviderTiles("CartoDB.Positron", group = "CartoDB.Positron" ) %>%
+  addPolygons(data = PA_senate_2012,
+				fillColor = "lightblue",
+				stroke = TRUE,
+				color = "dodgerblue",
+				weight = 1.2,
+				opacity = 0.6,
+				fillOpacity = 0.5,
+				highlight = highlightOptions(
+				  stroke = TRUE,
+				  weight = 2, 
+				  opacity = 0.7,
+				  fill = "aliceblue",
+				  color = "dodgerblue",
+				  fillColor = "aliceblue", 
+				  fillOpacity = 0.7,
+				  bringToFront = FALSE),
+				label= paste0("2012 Senate District ",htmlEscape(PA_senate_2012$District_1)),
+				group = "Senate District 2012") %>%
+	 addPolygons(data = PA_house_2012,
+				fillColor = "skyblue",
+				stroke = TRUE,
+				color = "royalblue",
+				weight = 1,
+				opacity = 0.6,
+				fillOpacity = 0.5,
+				highlight = highlightOptions(
+				  stroke = TRUE,
+				  weight = 2, 
+				  opacity = 0.7,
+				  fill = "aliceblue",
+				  color = "royalblue",
+				  fillColor = "aliceblue", 
+				  fillOpacity = 0.7,
+				  bringToFront = FALSE),
+				label = paste0("2012 House District ", htmlEscape(PA_house_2012$District_N)),
+				group = "House District 2012")%>%
+addPolygons(data = PA_county_2022,
+				fillColor = "cornflowerblue",
+				stroke = TRUE,
+				color = "cornflowerblue",
+				weight = 1.3,
+				opacity = 0.8,
+				fillOpacity = 0.3,
+				highlight = highlightOptions(
+				  stroke = TRUE,
+				  weight = 2, 
+				  opacity = 0.7,
+				  fill = "lightcyan",
+				  color = "cornflowerblue",
+				  fillColor = "lightcyan", 
+				  fillOpacity = 0.7,
+				  bringToFront = FALSE),
+				label = paste0("County: ",
+				htmlEscape(PA_county_2022$COUNTY_NAM)),
+				group = "County 2022") %>%
+   addPolygons(data = PA_SD_2022,
+				fillColor = "darkcyan",
+				stroke = TRUE,
+				color = "darkcyan",
+				weight = 1.3,
+				opacity = 0.8,
+				fillOpacity = 0.3,
+				highlight = highlightOptions(
+				  stroke = TRUE,
+				  weight = 2, 
+				  opacity = 0.7,
+				  fill = "lightcyan",
+				  color = "darkcyan",
+				  fillColor = "lightcyan", 
+				  fillOpacity = 0.7,
+				  bringToFront = FALSE),
+				label = paste0("2022 SD ",
+			htmlEscape(PA_SD_2022$IU_NAME)),
+				group = "SD district 2022") %>%
+	addPolygons(data = PA_congressional_2022,
+				fillColor = "aquamarine",
+				stroke = TRUE,
+				color = "mediumaquamarine",
+				weight = 1.3,
+				opacity = 0.8,
+				fillOpacity = 0.3,
+				highlight = highlightOptions(
+				  stroke = TRUE,
+				  weight = 2, 
+				  opacity = 0.7,
+				  fill = "honeydew",
+				  color = "mediumaquamarine",
+				  fillColor = "honeydew", 
+				  fillOpacity = 0.7,
+				  bringToFront = FALSE),
+				label = paste0("2022 Congressional District ",
+				htmlEscape(PA_congressional_2022$LEG_DISTRI)),
+				group = "Congressional 2022") %>%
+  addPolygons(data = PA_municipalities_2022,
+				fillColor = "transparent",
+				stroke = TRUE,
+				color = "lightsteelblue",
+				weight = 0.7,
+				opacity = 0.8,
+				fillOpacity = 0.2,
+				highlight = highlightOptions(
+				  stroke = TRUE,
+				  weight = 2, 
+				  opacity = 0.7,
+				  fill = "lavender",
+				  color = "lightsteelblue",
+				  fillColor = "lavender", 
+				  fillOpacity = 0.7,
+				  bringToFront = FALSE),                
+				popup = paste0("2022 Municipalities: ", htmlEscape(PA_municipalities_2022$municipal1), ", County: ", htmlEscape(PA_municipalities_2022$county)),
+				group = "Municipalities 2022") %>%
+	addPolygons(data = PA_senate_2022,
+				fillColor = "darkturquoise",
+				stroke = TRUE,
+				color = "darkturquoise",
+				weight = 1.2,
+				opacity = 0.8,
+				fillOpacity = 0.2,
+				highlight = highlightOptions(
+				  stroke = TRUE,
+				  weight = 2, 
+				  opacity = 0.7,
+				  fill = "lightcyan",
+				  color = "darkturquoise",
+				  fillColor = "lightcyan", 
+				  fillOpacity = 0.7,
+				  bringToFront = FALSE),                
+				label= paste0("2022 Senate District ", htmlEscape(PA_senate_2022$DISTRICT)),
+				group = "Senate District 2022") %>%
+	addPolygons(data = PA_house_2022,
+				fillColor = "darkseagreen",
+				stroke = TRUE,
+				color = "forestgreen",
+				weight = 1,
+				opacity = 0.4,
+				fillOpacity = 0.2,
+				highlight = highlightOptions(
+				  stroke = TRUE,
+				  weight = 2, 
+				  opacity = 0.7,
+				  fill = "honeydew",
+				  color = "forestgreen",
+				  fillColor = "honeydew", 
+				  fillOpacity = 0.7,
+				  bringToFront = FALSE),                
+				label= paste0("2022 House District ", htmlEscape(PA_house_2022$DISTRICT  )),
+				group = "House District 2022") %>%
+  addPolygons(data = PA_senate_2022,
+				fillColor = "transparent",
+				stroke = TRUE,
+				color = "gold",
+				weight = 3,
+				opacity = 0.6,
+				highlight = highlightOptions(
+				  stroke = TRUE,
+				  weight = 2, 
+				  opacity = 0.7,
+				  fill = "cornsilk",
+				  color = "gold",
+				  fillColor = "cornsilk", 
+				  fillOpacity = 0.2,
+				  bringToFront = FALSE),                
+				label= paste0("2022 Senate District ", htmlEscape(PA_senate_2022$DISTRICT)),
+				group = "Senate District lines 2022") %>%
+  addPolygons(data = PA_house_2022,
+				fillColor = "transparent",
+				stroke = TRUE,
+				color = "darkorange",
+				weight = 3,
+				opacity = 0.6,
+				highlight = highlightOptions(
+				  stroke = TRUE,
+				  weight = 2, 
+				  opacity = 0.7,
+				  fill = "papayawhip",
+				  color = "darkorange",
+				  fillColor = "papayawhip", 
+				  fillOpacity = 0.2,
+				  bringToFront = FALSE),                
+				label= paste0("2022 House District ", htmlEscape(PA_house_2022$DISTRICT)),
+				group = "House District lines 2022") %>%
+	   addLabelOnlyMarkers(data = PA_senate_2022_centroid, ~x, ~y, label = ~as.character(ID),
+						labelOptions = labelOptions(noHide = TRUE,
+													direction = "center",
+													offset = c(0, 0), opacity = 1, 
+													textsize = "15px", textOnly = TRUE, 
+													style = list("font-style" = "bold")),
+							group = "Senate District 2022") %>%
+   addLabelOnlyMarkers(data = PA_house_2022_centroid, ~x, ~y, label = ~as.character(ID),
+						labelOptions = labelOptions(noHide = TRUE,
+													direction = "center",
+													offset = c(0, 0), opacity = 1, 
+													textsize = "15px", textOnly = TRUE, 
+													style = list("font-style" = "bold")),
+							group = "House District 2022") %>%
+   addLabelOnlyMarkers(data = PA_house_2022_centroid, ~x, ~y, label = ~as.character(ID),
+						labelOptions = labelOptions(noHide = TRUE,
+													direction = "center",
+													offset = c(0, 0), opacity = 0.7, 
+													textsize = "25px", textOnly = TRUE, 
+													style = list("font-style" = "bold")),
+							group = "House District lines 2022") %>%
+   addLabelOnlyMarkers(data = PA_congressional_2022_centroid, ~x, ~y, label = ~as.character(ID),
+						labelOptions = labelOptions(noHide = TRUE,
+													direction = "center",
+													offset = c(0, 0), opacity = 1, 
+													textsize = "15px", textOnly = TRUE, 
+													style = list("font-style" = "bold")),
+							group = "Congressional 2022") %>%
+   addLabelOnlyMarkers(data = PA_senate_2012_centroid, ~x, ~y, label = ~as.character(ID),
+						labelOptions = labelOptions(noHide = TRUE,
+													direction = "center",
+													offset = c(0, 0), opacity = 1, 
+													textsize = "15px", textOnly = TRUE, 
+													style = list("font-style" = "bold")),
+							group = "Senate District 2012") %>%
+   addLabelOnlyMarkers(data = PA_house_2012_centroid, ~x, ~y, label = ~as.character(ID),
+						labelOptions = labelOptions(noHide = TRUE,
+													direction = "center",
+													offset = c(0, 0), opacity = 1, 
+													textsize = "15px", textOnly = TRUE, 
+													style = list("font-style" = "bold")),
+							group = "House District 2012") %>%
+ 	 	 addLegend("bottomright", 
+			colors = c("lightblue","skyblue","aquamarine","darkturquoise","darkseagreen", "darkcyan", "cornflowerblue", "","lightsteelblue", "gold","darkorange"), 
+			labels = c("Senate district 2012","House district 2012", "Congressional 2022","Senate district 2022","House district 2022", "SD district 2022", "County 2022", "", "Municipalities 2022", "Senate District lines 2022", "House district lines 2022"),
+			title = "PA districts",
+			opacity = 1) %>%    
+hideGroup(c("Senate District 2012",
+									  "House District 2012",
+									  "Congressional 2022",
+									  "Senate District 2022",
+									  "House District 2022",
+            "SD district 2022",
+            "County 2022",
+            "Municipalities 2022",
+            "Senate District lines 2022",
+            "House District lines 2022")) %>%
+	showGroup(c("Municipalities 2022", "House District 2022")) %>%
+	addLayersControl(overlayGroups= c("Senate District 2012",
+									  "House District 2012",
+									  "Congressional 2022",
+									  "Senate District 2022",
+									  "House District 2022",
+									  "SD district 2022",
+									  "County 2022",
+									  "Municipalities 2022",
+									  "Senate District lines 2022",
+									  "House District lines 2022"), 
+					 baseGroups = c("CartoDB.Positron")) 
+
+
+PA_map
+```
+
+
+
