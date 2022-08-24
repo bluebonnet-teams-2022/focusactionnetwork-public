@@ -88,7 +88,7 @@ MI_map <- leaflet(options = leafletOptions(zoomControl = TRUE,
                                  zoomSnap = 0.25,
                                  zoomDelta = 0.25)) %>%
 	addTiles(group = "OSM") %>%
-	setView(lat = 44, lng = -85, zoom = 7) %>%
+	setView(lat = 44.5, lng = -85, zoom = 6.75) %>%
 	addProviderTiles("CartoDB.Positron", group = "CartoDB.Positron" ) %>%
   addPolygons(data = MI_townships_2022,
 				fillColor = "transparent",
@@ -271,6 +271,6 @@ hideGroup(c( "Senate District 2022",
 MI_map
 ```
 
-```{r}
-saveWidget(MI_map, file = "MI_map.html", selfcontained = FALSE)
-```
+
+
+
