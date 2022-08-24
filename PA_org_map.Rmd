@@ -1,0 +1,53 @@
+---
+title: "PA_org_map"
+author: "Yvonne Lian"
+date: '2022-08-23'
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE,
+  echo = TRUE
+)
+library(tidyverse)
+library(leaflet)
+library(tidycensus)
+library(viridis)
+library(sf)
+library(dplyr)
+library(knitr)
+library(shinythemes)
+library(shiny)
+library(htmltools)
+library(htmlwidgets)
+library(rsconnect)
+library(rgeos)
+```
+
+
+```{r}
+PA_org_list <- read.csv("data/Organization_map_data/Organizations-PA-26 orgs.csv")
+```
+
+
+```{r}
+PA_org_list_sf <- PA_org_list %>%
+  st_as_sf(coords = c("Latitude", "Longitude"), crs=4326) %>%
+  st_transform(4326)
+
+
+```
+
+
+
+```{r}
+PA_org_map <- leaflet(options = leafletOptions(zoomControl = TRUE,
+                                 zoomSnap = 0.25,
+                                 zoomDelta = 0.25)) %>%
+	addTiles(group = "OSM") %>%
+	setView(lat = 41, lng = -77.5, zoom = 7.75) %>%
+	addProviderTiles("CartoDB.Positron", group = "CartoDB.Positron" ) %>%
+  addMarkers(PA_org_list_sf,
+				label= paste0("Org Name: ",htmlEscape(PA_org_list_sf$Organization.name))
+```
+

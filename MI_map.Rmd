@@ -124,7 +124,7 @@ MI_map <- leaflet(options = leafletOptions(zoomControl = TRUE,
 				  fillOpacity = 0.7,
 				  bringToFront = FALSE),
 				label = paste0("County: ",
-				htmlEscape(MI_county_2022$DISTRICT)),
+				htmlEscape(MI_county_2022$NAME)),
 				group = "County 2022") %>%
    addPolygons(data = MI_SD_2022,
 				fillColor = "darkcyan",
@@ -271,3 +271,6 @@ hideGroup(c( "Senate District 2022",
 MI_map
 ```
 
+```{r}
+saveWidget(MI_map, file = "MI_map.html", selfcontained = FALSE)
+```
